@@ -1,43 +1,67 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class PlayerController : MonoBehaviour
+namespace TPSRoguelite.InGame.Camera
 {
-    private const float MOVE_SPEED = 5.0f;
-
-    [SerializeField] private Rigidbody rigidbody;
-
-    private Vector3 moveDirection = Vector3.zero;
-
-    public Vector3 CurrentVelocity { get; private set; }
-
-    void Update()
+    public class PlayerController : MonoBehaviour
     {
-        float x = Input.GetAxisRaw("Horizontal");
-        float z = Input.GetAxisRaw("Vertical");
+        private const float MOVE_SPEED = 5.0f;
 
-        moveDirection = new Vector3(x, 0, z).normalized;
-    }
-    private void FixedUpdate()
-    {
-        Move();
-    }
-    private void Move()
-    {
-        if (rigidbody == null)
+        [SerializeField] private Rigidbody rigidbody;
+
+        private PlayerInputActions inputActions;
+
+        private Vector2 moveInput = Vector2.zero;
+
+        private Vector3 moveDirection = Vector3.zero;
+
+        public Vector3 CurrentVelocity { get; private set; }
+        private void Awake()
         {
-            Debug.LogError("RigidbodyÇ™ê›íËÇ≥ÇÍÇƒÇ¢Ç‹ÇπÇÒÅB");
-            return;
+            inputActions = new PlayerInputActions();
+            inputActions.Player.Fire.performed += OnFire;
         }
-        if (moveDirection == Vector3.zero)
+        void Update()
         {
-            rigidbody.linearVelocity = new Vector3(0f, rigidbody.linearVelocity.y, 0f);
-            CurrentVelocity = Vector3.zero;
-            return;
+            moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         }
-        Vector3 targetVelocity = moveDirection * MOVE_SPEED;
+        private void FixedUpdate()
+        {
+            Move();
+        }
+        private void Move()
+        {
+            if (rigidbody == null)
+            {
+                Debug.LogError("RigidbodyÇ™ê›íËÇ≥ÇÍÇƒÇ¢Ç‹ÇπÇÒÅB");
+                return;
+            }
+            if (moveInput == Vector2.zero)
+            {
+                rigidbody.linearVelocity = new Vector3(0f, rigidbody.linearVelocity.y, 0f);
+                CurrentVelocity = Vector3.zero;
+                return;
+            }
+            Vector3 targetVelocity = new Vector3(moveInput.x, rigidbody.linearVelocity.y, moveInput.y);
+            targetVelocity.Normalize();
 
-        rigidbody.linearVelocity = new Vector3(targetVelocity.x, rigidbody.linearVelocity.y, targetVelocity.z);
+            rigidbody.linearVelocity = new Vector3(targetVelocity.x, rigidbody.linearVelocity.y, targetVelocity.z);
 
-        CurrentVelocity = rigidbody.linearVelocity;
+            rigidbody.linearVelocity = targetVelocity * MOVE_SPEED;
+
+            CurrentVelocity = rigidbody.linearVelocity;
+        }
+        private void OnEnable()
+        {
+            inputActions.Enable();
+        }
+        private void OnDisable()
+        {
+            inputActions.Disable();
+        }
+        private void OnFire(InputAction.CallbackContext context)
+        {
+            Debug.Log("Fire");
+        }
     }
 }

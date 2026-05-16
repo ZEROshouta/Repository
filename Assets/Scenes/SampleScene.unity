@@ -127,13 +127,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -3848353912376685455, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1800364974544595074, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.42288303
       objectReference: {fileID: 0}
     - target: {fileID: 1800364974544595074, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2
+      value: 2.52
       objectReference: {fileID: 0}
     - target: {fileID: 1800364974544595074, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
       propertyPath: m_LocalPosition.z
@@ -174,7 +178,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7708901672681769663, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1523193910}
   m_SourcePrefab: {fileID: 100100000, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
 --- !u!1 &330585543
 GameObject:
@@ -262,13 +269,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -12}
+  m_LocalRotation: {x: 0.33990657, y: -0, z: -0, w: 0.94045925}
+  m_LocalPosition: {x: 0, y: 6.98, z: -17.02}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 39.742, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -489,6 +496,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1523193902 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7708901672681769663, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
+  m_PrefabInstance: {fileID: 219178021}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1523193910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1523193902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+  m_Actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
 --- !u!1 &1670068978
 GameObject:
   m_ObjectHideFlags: 0
