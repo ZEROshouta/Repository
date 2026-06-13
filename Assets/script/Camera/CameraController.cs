@@ -39,7 +39,6 @@ namespace TPSRoguelite.InGame.Camera
         {
             inputActions.Disable();
         }
-        // Update is called once per frame
         void Update()
         {
             lookInput = inputActions.Player.Look.ReadValue<Vector2>();
