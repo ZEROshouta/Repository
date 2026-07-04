@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using Cysharp.Threading.Tasks;
 using System.ComponentModel;
 using System;
+using System.Threading;
 
 namespace TPSRoguelite.InGame.Camera
 {
@@ -15,19 +16,15 @@ namespace TPSRoguelite.InGame.Camera
 
         private const float LASER_MAX_DISTANCE = 50f;
 
-        private const int ATTACK_DAMAGE = 20;
-
         private const float ATTACK_RANGE = 50f;
-
-        private const int MAX_AMMO = 30;
-
-        private const float RELOAD_TIME = 1.5f;
 
         [SerializeField] private Rigidbody rigidbody;
 
         [SerializeField] private Transform weponOeigin;
 
         [SerializeField] private LineRenderer laserLineRenderer;
+
+        [SerializeField] private WeaponData currentWeapon;
 
         private PlayerInputActions inputActions;
 
@@ -39,15 +36,27 @@ namespace TPSRoguelite.InGame.Camera
 
         private bool isReloading;
 
+        private bool canShoot;
+
+        private CancellationTokenSource fireCts;
+
         public Vector3 CurrentVelocity { get; private set; }
 
         public int CurrentAmmo { get; private set; }
         private void Awake()
         {
-            CurrentAmmo = MAX_AMMO;
+            if (currentWeapon != null)
+            {
+                CurrentAmmo = currentWeapon.MaxAmmo;
+            }
+            else
+            {
+                Debug.LogError("WeaponDataがありません。");
+            }
 
             inputActions = new PlayerInputActions();
             inputActions.Player.Fire.performed += OnFire;
+            inputActions.Player.Fire.canceled += OnFire;
             inputActions.Player.Reload.performed += OnReload;
 
             if (UnityEngine.Camera.main != null)
@@ -110,6 +119,113 @@ namespace TPSRoguelite.InGame.Camera
         }
         private void OnFire(InputAction.CallbackContext context)
         {
+            if (context.performed)
+            {
+                if (canShoot || isReloading || currentWeapon == null)
+                {
+                    return;
+                }
+
+                fireCts = new CancellationTokenSource();
+                var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(fireCts.Token, this.GetCancellationTokenOnDestroy());
+
+                switch (currentWeapon.WeaponFireType)
+                {
+                    case Enum.FireType.SemiAuto:
+                        ShootBurstAsync(this.GetCancellationTokenOnDestroy()).Forget();
+                        break;
+
+                    case Enum.FireType.Bust:
+                        ShootSemiAutoAsync(this.GetCancellationTokenOnDestroy()).Forget();
+                        break;
+
+                    case Enum.FireType.FullAuto:
+                        ShootFullAutoAsync(linkedCts.Token).Forget();
+                        break;
+
+                    default:
+                        Debug.LogWarning($"割り当てていない射撃タイプがあります。{currentWeapon.WeaponFireType}");
+                        break;
+                }
+            }
+
+            if (context.canceled)
+            {
+                fireCts?.Cancel();
+                fireCts?.Dispose();
+                fireCts = null;
+            }
+        }
+        private async UniTaskVoid ShootSemiAutoAsync(CancellationToken token)
+        {
+            canShoot = true;
+
+            if (CurrentAmmo == 0)
+            {
+                ReloadAsync().Forget();
+                return;
+            }
+            canShoot = false;
+
+            CurrentAmmo--;
+            Debug.Log($"セミオートで撃った ! 弾数: {CurrentAmmo}");
+            Shoot();
+
+            await (UniTask.Delay(System.TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token));
+
+            canShoot = true;
+        }
+
+        private async UniTaskVoid ShootBurstAsync(CancellationToken token)
+        {
+            canShoot = false;
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (CurrentAmmo <= 0)
+                {
+                    ReloadAsync().Forget();
+                    break;
+                }
+
+                CurrentAmmo--;
+                Shoot();
+                Debug.Log($"バースト ! 残弾数: {CurrentAmmo}");
+
+                await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireInteval), cancellationToken: token);
+            }
+
+            await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token);
+            canShoot = true;
+        }
+        private async UniTaskVoid ShootFullAutoAsync(CancellationToken token)
+        {
+            canShoot = false;
+
+            while (!token.IsCancellationRequested)
+            {
+                if (CurrentAmmo <= 0)
+                {
+                    ReloadAsync().Forget();
+                    break;
+                }
+
+                CurrentAmmo--;
+                Debug.Log($"フルオート ! 残弾数 : {CurrentAmmo}");
+                Shoot();
+
+                bool isCanceled = await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireInteval), cancellationToken: token).SuppressCancellationThrow();
+                if (isCanceled)
+                {
+                    break;
+                }
+            }
+
+            await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token);
+            canShoot = true;
+        }
+        private void Shoot()
+        {
             Ray ray = new Ray(mainCameraTransform.position, mainCameraTransform.forward);
 
             if (Physics.Raycast(ray, out RaycastHit hitInfo, ATTACK_RANGE))
@@ -120,13 +236,13 @@ namespace TPSRoguelite.InGame.Camera
 
                 if (target != null)
                 {
-                    target.TakeDamage(ATTACK_DAMAGE);
+                    target.TakeDamage(currentWeapon.AttackPower);
                 }
             }
         }
         private void OnReload(InputAction.CallbackContext context)
         {
-            if (isReloading || CurrentAmmo == MAX_AMMO)
+            if (isReloading || CurrentAmmo == currentWeapon.MaxAmmo)
             {
                 return;
             }
@@ -138,9 +254,9 @@ namespace TPSRoguelite.InGame.Camera
             isReloading = true;
             Debug.Log("リロード中");
 
-            await UniTask.Delay(TimeSpan.FromSeconds(RELOAD_TIME), cancellationToken: this.GetCancellationTokenOnDestroy());
+            await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.ReloadTime), cancellationToken: this.GetCancellationTokenOnDestroy());
 
-            CurrentAmmo = MAX_AMMO;
+            CurrentAmmo = currentWeapon.MaxAmmo;
             isReloading = false;
             Debug.Log("リロード完了");
         }

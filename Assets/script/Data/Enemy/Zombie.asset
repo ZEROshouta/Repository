@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b01c098682f93674490b7d9fa6f52898, type: 3}
   m_Name: Zombie
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  <EnemyName>k__BackingField: 
-  <MaxHP>k__BackingField: 0
-  <MoveSpeed>k__BackingField: 0
+  <EnemyName>k__BackingField: Zombie
+  <MaxHP>k__BackingField: 100
+  <MoveSpeed>k__BackingField: 100

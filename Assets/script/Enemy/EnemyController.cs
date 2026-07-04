@@ -22,6 +22,10 @@ namespace TPSRoguelite.InGame.Enemy
             {
                 Debug.LogError("Playerというタグのついたオブジェクトが見つかりませんでした。");
             }
+            if (navMeshAgent != null && enemyState != null && enemyState.EnemyDataAseet != null)
+            {
+
+            }
         }
         void Update()
         {
