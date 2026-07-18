@@ -2,9 +2,10 @@ using Core.Interface;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Cysharp.Threading.Tasks;
-using System.ComponentModel;
 using System;
 using System.Threading;
+using Core.MasterData;
+using TPSRoguelite.InGame.Enum;
 
 namespace TPSRoguelite.InGame.Camera
 {
@@ -24,7 +25,9 @@ namespace TPSRoguelite.InGame.Camera
 
         [SerializeField] private LineRenderer laserLineRenderer;
 
-        [SerializeField] private WeaponData currentWeapon;
+        [SerializeField] private ulong weaponId = 1;
+
+        private WeaponDataRecord currentWeapon;
 
         private PlayerInputActions inputActions;
 
@@ -34,9 +37,9 @@ namespace TPSRoguelite.InGame.Camera
 
         private Transform mainCameraTransform;
 
-        private bool isReloading;
+        private bool isReloading =false;
 
-        private bool canShoot;
+        private bool canShoot = true;
 
         private CancellationTokenSource fireCts;
 
@@ -45,6 +48,12 @@ namespace TPSRoguelite.InGame.Camera
         public int CurrentAmmo { get; private set; }
         private void Awake()
         {
+            gameObject.SetActive(false);
+        }
+        public void Setup()
+        {
+            currentWeapon = MasterDataAccessor.Instance.GetById<WeaponDataRecord>(weaponId);
+
             if (currentWeapon != null)
             {
                 CurrentAmmo = currentWeapon.MaxAmmo;
@@ -55,8 +64,11 @@ namespace TPSRoguelite.InGame.Camera
             }
 
             inputActions = new PlayerInputActions();
-            inputActions.Player.Fire.performed += OnFire;
+
+            inputActions.Player.Fire.started += OnFire;
+
             inputActions.Player.Fire.canceled += OnFire;
+
             inputActions.Player.Reload.performed += OnReload;
 
             if (UnityEngine.Camera.main != null)
@@ -67,10 +79,13 @@ namespace TPSRoguelite.InGame.Camera
             {
                 Debug.LogError("MainCameraが見つかりません。");
             }
+
+            gameObject.SetActive(true);
         }
         void Update()
         {
             moveInput = inputActions.Player.Move.ReadValue<Vector2>();
+
             DrawLaserPointer();
         }
         private void FixedUpdate()
@@ -79,71 +94,96 @@ namespace TPSRoguelite.InGame.Camera
         }
         private void Move()
         {
-            if (rigidbody == null)
+            if (rigidbody == null || mainCameraTransform == null)
             {
-                Debug.LogError("Rigidbodyが設定されていません。");
                 return;
             }
+
+            Vector3 cameraForwad = mainCameraTransform.forward;
+
+            cameraForwad.y = 0f;
+
+            cameraForwad.Normalize();
+
+            if (cameraForwad != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(cameraForwad);
+
+                rigidbody.rotation = Quaternion.Slerp(rigidbody.rotation, targetRotation, ROTATE_SPEED * Time.fixedDeltaTime);
+            }
+
             if (moveInput == Vector2.zero)
             {
                 rigidbody.linearVelocity = new Vector3(0f, rigidbody.linearVelocity.y, 0f);
+
                 CurrentVelocity = Vector3.zero;
                 return;
             }
 
             Vector3 cameraForward = mainCameraTransform.forward;
+
             Vector3 cameraRight = mainCameraTransform.right;
 
             cameraForward.y = 0f;
+
             cameraRight.y = 0f;
+
             cameraForward.Normalize();
+
             cameraRight.Normalize();
 
             Vector3 moveDirection = (cameraForward * moveInput.y + cameraRight * moveInput.x).normalized;
 
             Quaternion targeRotation = Quaternion.LookRotation(moveDirection);
+
             rigidbody.rotation = Quaternion.Slerp(rigidbody.rotation, targeRotation, ROTATE_SPEED * Time.fixedDeltaTime);
 
             Vector3 targetVelocity = moveDirection * MOVE_SPEED;
+
             rigidbody.linearVelocity = new Vector3(targetVelocity.x, rigidbody.linearVelocity.y, targetVelocity.z);
 
             CurrentVelocity = rigidbody.linearVelocity;
         }
         private void OnEnable()
         {
-            inputActions.Enable();
+            inputActions?.Enable();
         }
         private void OnDisable()
         {
-            inputActions.Disable();
+            inputActions?.Disable();
         }
         private void OnFire(InputAction.CallbackContext context)
         {
-            if (context.performed)
+            if (context.started)
             {
-                if (canShoot || isReloading || currentWeapon == null)
+                if (!canShoot || isReloading || currentWeapon == null)
                 {
                     return;
                 }
 
                 fireCts = new CancellationTokenSource();
+
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(fireCts.Token, this.GetCancellationTokenOnDestroy());
 
-                switch (currentWeapon.WeaponFireType)
+                switch ((FireType)currentWeapon.WeaponFireType)
                 {
                     case Enum.FireType.SemiAuto:
+
                         ShootBurstAsync(this.GetCancellationTokenOnDestroy()).Forget();
                         break;
 
                     case Enum.FireType.Bust:
-                        ShootSemiAutoAsync(this.GetCancellationTokenOnDestroy()).Forget();
+
+                        ShootSemiAutoAsync(linkedCts.Token).Forget();
                         break;
 
                     case Enum.FireType.FullAuto:
+
                         ShootFullAutoAsync(linkedCts.Token).Forget();
                         break;
 
                     default:
+
                         Debug.LogWarning($"割り当てていない射撃タイプがあります。{currentWeapon.WeaponFireType}");
                         break;
                 }
@@ -152,7 +192,9 @@ namespace TPSRoguelite.InGame.Camera
             if (context.canceled)
             {
                 fireCts?.Cancel();
+
                 fireCts?.Dispose();
+
                 fireCts = null;
             }
         }
@@ -165,10 +207,13 @@ namespace TPSRoguelite.InGame.Camera
                 ReloadAsync().Forget();
                 return;
             }
+
             canShoot = false;
 
             CurrentAmmo--;
+
             Debug.Log($"セミオートで撃った ! 弾数: {CurrentAmmo}");
+
             Shoot();
 
             await (UniTask.Delay(System.TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token));
@@ -189,13 +234,16 @@ namespace TPSRoguelite.InGame.Camera
                 }
 
                 CurrentAmmo--;
+
                 Shoot();
+
                 Debug.Log($"バースト ! 残弾数: {CurrentAmmo}");
 
                 await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireInteval), cancellationToken: token);
             }
 
             await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token);
+
             canShoot = true;
         }
         private async UniTaskVoid ShootFullAutoAsync(CancellationToken token)
@@ -211,10 +259,13 @@ namespace TPSRoguelite.InGame.Camera
                 }
 
                 CurrentAmmo--;
+
                 Debug.Log($"フルオート ! 残弾数 : {CurrentAmmo}");
+
                 Shoot();
 
                 bool isCanceled = await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireInteval), cancellationToken: token).SuppressCancellationThrow();
+
                 if (isCanceled)
                 {
                     break;
@@ -222,6 +273,7 @@ namespace TPSRoguelite.InGame.Camera
             }
 
             await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.FireRate), cancellationToken: token);
+
             canShoot = true;
         }
         private void Shoot()
@@ -251,13 +303,21 @@ namespace TPSRoguelite.InGame.Camera
         }
         private async UniTask ReloadAsync()
         {
+            if (isReloading || CurrentAmmo == currentWeapon.MaxAmmo)
+            {
+                return;
+            }
+
             isReloading = true;
+
             Debug.Log("リロード中");
 
             await UniTask.Delay(TimeSpan.FromSeconds(currentWeapon.ReloadTime), cancellationToken: this.GetCancellationTokenOnDestroy());
 
             CurrentAmmo = currentWeapon.MaxAmmo;
+
             isReloading = false;
+
             Debug.Log("リロード完了");
         }
         private void DrawLaserPointer()
@@ -270,6 +330,7 @@ namespace TPSRoguelite.InGame.Camera
             laserLineRenderer.SetPosition(0, weponOeigin.position);
 
             Ray ray = new Ray(mainCameraTransform.position, mainCameraTransform.forward);
+
             if (Physics.Raycast(ray, out RaycastHit hitInfo, LASER_MAX_DISTANCE))
             {
                 laserLineRenderer.SetPosition(1, hitInfo.point);

@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using TPSRoguelite.InGame.Enemy;
 using Unity.VisualScripting;
+using Core.MasterData;
 
 namespace TPSRoguelite.InGame.Spawner
 {
@@ -20,7 +21,7 @@ namespace TPSRoguelite.InGame.Spawner
         [SerializeField] private Transform[] spawnPoints;
 
         private Queue<EnemyState> enemyPool = new Queue<EnemyState>();
-        private void Awake()
+        public void Setup()
         {
             if (enemyPrefab == null)
             {
@@ -30,16 +31,21 @@ namespace TPSRoguelite.InGame.Spawner
             for (int i = 0; i < POOL_SIZE; i++)
             {
                 GameObject enemyObj = Instantiate(enemyPrefab);
+
                 EnemyState enemy = enemyObj.GetComponent<EnemyState>();
-                if (enemy == null)
+
+                if (enemy != null)
                 {
+                    ulong randomId = (ulong)UnityEngine.Random.Range(1, MasterDataAccessor.Instance.Count<EnemyDataRecord>());
+
+                    enemy.Initialize(randomId);
+
                     enemy.gameObject.SetActive(false);
+
                     enemyPool.Enqueue(enemy);
                 }
             }
-        }
-        private void Start()
-        {
+
             SpawnLoopAsync().Forget();
         }
         private async UniTaskVoid SpawnLoopAsync()
@@ -49,6 +55,7 @@ namespace TPSRoguelite.InGame.Spawner
             while (true)
             {
                 await UniTask.Delay(System.TimeSpan.FromSeconds(SPAWN_INTERVAL));
+
                 SpawnEnemyFromPool();
             }
         }
@@ -60,9 +67,11 @@ namespace TPSRoguelite.InGame.Spawner
             }
 
             int randomIndex = UnityEngine.Random.Range(0, spawnPoints.Length);
+
             Transform spawnPoint = spawnPoints[randomIndex];
 
             Vector3 safePosition = spawnPoint.position;
+
             if (NavMesh.SamplePosition(spawnPoint.position, out NavMeshHit hit, MAX_SPAWN_DISTANCE, NavMesh.AllAreas))
             {
                 safePosition = hit.position;
@@ -82,8 +91,11 @@ namespace TPSRoguelite.InGame.Spawner
             else
             {
                 Debug.LogWarning("プールに空きがなかったため、Instantiateで生成します。プールサイズを増やすか、生成に制限をかけてください");
+
                 GameObject enemyObj = Instantiate(enemyPrefab);
+
                 enemy = enemyObj.GetComponent<EnemyState>();
+
                 if (enemy == null)
                 {
                     Debug.LogError("EnemyStateの取得に失敗しました。");
@@ -91,16 +103,19 @@ namespace TPSRoguelite.InGame.Spawner
                 }
             }
             enemy.OnReturnToPoolAction -= ReturnToPool;
+
             enemy.OnReturnToPoolAction += ReturnToPool;
 
             enemy.transform.position = safePosition;
+
             enemy.transform.rotation = spawnPoint.rotation;
 
-            enemy.gameObject.SetActive(true);
+            enemy.Setup();
         }
         private void ReturnToPool(EnemyState enemy)
         {
             enemyPool.Enqueue(enemy);
+
             enemy.OnReturnToPoolAction -= ReturnToPool;
         }
     }

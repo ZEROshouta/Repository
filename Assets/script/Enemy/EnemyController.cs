@@ -14,6 +14,7 @@ namespace TPSRoguelite.InGame.Enemy
         private void Awake()
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
+
             if (player != null)
             {
                 targetPlayer = player.transform;
@@ -22,6 +23,7 @@ namespace TPSRoguelite.InGame.Enemy
             {
                 Debug.LogError("Playerというタグのついたオブジェクトが見つかりませんでした。");
             }
+
             if (navMeshAgent != null && enemyState != null && enemyState.EnemyDataAseet != null)
             {
 

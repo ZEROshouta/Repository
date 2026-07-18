@@ -5,17 +5,23 @@ namespace TPSRoguelite.InGame.Camera
 {
     public class CameraController : MonoBehaviour
     {
-        private float LOOK_SENSITIVITY = 0.2f;
-
-        private float DISTANCE = 5.0f;
-
-        private float HEIGIT_OFFSET = 1.5f;
-
-        private float MIN_PITCH = -10f;
-
-        private float MAX_PITCH = 60f;
-
         [SerializeField] private Transform target;
+
+        [Header("ÉJÉÅÉâÇÃäÓñ{ê›íË")]
+
+        [SerializeField] private float lookSensitivity = 0.2f;
+
+        [SerializeField] private float minPitch = -10f;
+
+        [SerializeField] private float maxPitch = 60f;
+
+        [SerializeField] private float zoomSpeed = 5.0f;
+
+        [SerializeField] private float targetDistance = 3.0f;
+
+        [SerializeField] private float targetHeightOffset = 1.2f;
+
+        [SerializeField] private float targetShouldereOffset = 0.8f;
 
         private PlayerInputActions inputActions;
 
@@ -24,11 +30,18 @@ namespace TPSRoguelite.InGame.Camera
         private float currentYaw = 0f;
 
         private float currentPitch = 20f;
+
+        private float currentDistance = 0f;
+
+        private float currentHeightOffset = 0f;
+
+        private float currentShoulderOffset = 0f;
         private void Awake()
         {
             inputActions = new PlayerInputActions();
 
             Cursor.lockState = CursorLockMode.Locked;
+
             Cursor.visible = false;
         }
         private void OnEnable()
@@ -43,10 +56,11 @@ namespace TPSRoguelite.InGame.Camera
         {
             lookInput = inputActions.Player.Look.ReadValue<Vector2>();
 
-            currentYaw += lookInput.x * LOOK_SENSITIVITY;
-            currentPitch -= lookInput.y * LOOK_SENSITIVITY;
+            currentYaw += lookInput.x * lookSensitivity;
 
-            currentPitch = Mathf.Clamp(currentPitch, MIN_PITCH, MAX_PITCH);
+            currentPitch -= lookInput.y * lookSensitivity;
+
+            currentPitch = Mathf.Clamp(currentPitch, minPitch, maxPitch);
         }
         private void LateUpdate()
         {
@@ -54,14 +68,23 @@ namespace TPSRoguelite.InGame.Camera
             {
                 return;
             }
+            
+            currentDistance = Mathf.Lerp(currentDistance, targetDistance, zoomSpeed * Time.deltaTime);
 
-            Vector3 targetPosition = target.position + Vector3.up * HEIGIT_OFFSET;
+            currentHeightOffset = Mathf.Lerp(currentHeightOffset, targetHeightOffset, zoomSpeed * Time.deltaTime);
+
+            currentShoulderOffset = Mathf.Lerp(currentShoulderOffset, targetShouldereOffset, zoomSpeed * Time.deltaTime);
 
             Quaternion rotate = Quaternion.Euler(currentPitch, currentYaw, 0f);
 
-            Vector3 cameraPosition = targetPosition - (rotate * Vector3.forward * DISTANCE);
+            Vector3 basePosition = target.position + Vector3.up * currentHeightOffset;
+
+            Vector3 shoulderPosition = basePosition + (rotate * Vector3.right * currentShoulderOffset);
+
+            Vector3 cameraPosition = shoulderPosition + (rotate * Vector3.forward * currentDistance);
 
             transform.position = cameraPosition;
+
             transform.rotation = rotate;
         }
     }
