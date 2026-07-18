@@ -27,6 +27,8 @@ namespace TPSRoguelite.InGame.Camera
 
         [SerializeField] private ulong weaponId = 1;
 
+        [SerializeField] private ParticleSystem muzzleFlash;
+
         private WeaponDataRecord currentWeapon;
 
         private PlayerInputActions inputActions;
@@ -37,7 +39,7 @@ namespace TPSRoguelite.InGame.Camera
 
         private Transform mainCameraTransform;
 
-        private bool isReloading =false;
+        private bool isReloading = false;
 
         private bool canShoot = true;
 
@@ -278,6 +280,11 @@ namespace TPSRoguelite.InGame.Camera
         }
         private void Shoot()
         {
+            if (muzzleFlash != null)
+            {
+                muzzleFlash.Play();
+            }
+
             Ray ray = new Ray(mainCameraTransform.position, mainCameraTransform.forward);
 
             if (Physics.Raycast(ray, out RaycastHit hitInfo, ATTACK_RANGE))
