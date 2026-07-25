@@ -11,7 +11,7 @@ using UnityEngine.UI;
 using DG.Tweening;
 using Cysharp.Threading.Tasks.Triggers;
 
-namespace TPSRoguelite.InGame.Camera
+namespace TPSRoguelite.InGame.Player
 {
     public class PlayerController : MonoBehaviour
     {
@@ -41,6 +41,12 @@ namespace TPSRoguelite.InGame.Camera
 
         [SerializeField] private Image reloadCircleImage;
 
+        [SerializeField] private Slider expBar;
+
+        [SerializeField] private TextMeshProUGUI levelUpText;
+
+        [SerializeField] private ParticleSystem levelUpEffect;
+
         private WeaponDataRecord currentWeapon;
 
         private PlayerInputActions inputActions;
@@ -56,10 +62,11 @@ namespace TPSRoguelite.InGame.Camera
         private bool canShoot = true;
 
         private CancellationTokenSource fireCts;
-
         public Vector3 CurrentVelocity { get; private set; }
-
         public int CurrentAmmo { get; private set; }
+        public int CurrentExp { get; private set; }
+        public int CurrentLevel { get; private set; }
+        private int RequiredExp => CurrentLevel * 5;
         private void Awake()
         {
             gameObject.SetActive(false);
@@ -99,6 +106,15 @@ namespace TPSRoguelite.InGame.Camera
             if (reloadUI != null)
             {
                 reloadUI.SetActive(false);
+            }
+
+            CurrentExp = 0;
+
+            CurrentLevel = 1;
+
+            if (levelUpText != null)
+            {
+                levelUpText.enabled = false;
             }
 
             gameObject.SetActive(true);
@@ -421,6 +437,19 @@ namespace TPSRoguelite.InGame.Camera
             UpdateCurrentAmmoUI();
 
             isReloading = false;
+        }
+        public void AddExp(int amount)
+        {
+            CurrentExp += amount;
+
+            UpdateExpUI();
+        }
+        private void UpdateExpUI()
+        {
+            if (expBar != null)
+            {
+                expBar.value = (float)CurrentExp / RequiredExp;
+            }
         }
     }
 }

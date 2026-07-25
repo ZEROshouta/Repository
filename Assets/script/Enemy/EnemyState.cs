@@ -12,7 +12,11 @@ namespace TPSRoguelite.InGame.Enemy
     {
         private const float FLASH_DURATION = 0.1f;
 
+        private const float ORB_DROP_HEIGHT_OFFSET = 0.5f;
+
         [SerializeField] private Renderer[] modelRenderers;
+
+        [SerializeField] private GameObject experienceOrbPrefab;
 
         private Color[] defaultColors;
 
@@ -86,6 +90,13 @@ namespace TPSRoguelite.InGame.Enemy
         }
         private void Die()
         {
+            if (experienceOrbPrefab != null)
+            {
+                Vector3 spawnPosition = transform.position + Vector3.up * ORB_DROP_HEIGHT_OFFSET;
+
+                Instantiate(experienceOrbPrefab, spawnPosition, Quaternion.identity);
+            }
+
             Debug.Log($"{EnemyDataAseet.EnemyName}‚ð“|‚µ‚Ü‚µ‚½");
 
             gameObject.SetActive(false);
