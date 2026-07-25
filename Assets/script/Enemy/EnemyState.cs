@@ -2,18 +2,43 @@ using UnityEngine;
 using UnityEngine.Events;
 using Core.Interface;
 using Core.MasterData;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace TPSRoguelite.InGame.Enemy
 {
     public class EnemyState : MonoBehaviour, IDamageable
     {
+        private const float FLASH_DURATION = 0.1f;
+
+        [SerializeField] private Renderer[] modelRenderers;
+
+        private Color[] defaultColors;
+
+        private CancellationTokenSource flashCts;
         public EnemyDataRecord EnemyDataAseet { get; private set; }
         public int CurrentHP { get; private set; }
 
         public event UnityAction<EnemyState> OnReturnToPoolAction;
+
+        public event UnityAction OnDamageAction;
         public void Initialize(ulong id)
         {
             EnemyDataAseet = MasterDataAccessor.Instance.GetById<EnemyDataRecord>(id);
+
+            if (modelRenderers != null)
+            {
+                defaultColors = new Color[modelRenderers.Length];
+
+                for (int i = 0; i < modelRenderers.Length; i++)
+                {
+                    if (modelRenderers[i] != null)
+                    {
+                        defaultColors[i] = modelRenderers[i].material.color;
+                    }
+                }
+            }
         }
         public void Setup()
         {
@@ -26,6 +51,8 @@ namespace TPSRoguelite.InGame.Enemy
             CurrentHP = EnemyDataAseet.MaxHP;
 
             gameObject.SetActive(true);
+
+            ResetColor();
         }
         public void TakeDamage(int damageAmount)
         {
@@ -38,7 +65,21 @@ namespace TPSRoguelite.InGame.Enemy
 
             Debug.Log($"{EnemyDataAseet.EnemyName}に{damageAmount}のダメージ!残りHP:{CurrentHP}");
 
-            if (CurrentHP <= 0)
+            if (CurrentHP > 0)
+            {
+                OnDamageAction?.Invoke();
+
+                flashCts?.Dispose();
+
+                flashCts = null;
+
+                flashCts = new CancellationTokenSource();
+
+                var linlkedCts = CancellationTokenSource.CreateLinkedTokenSource(flashCts.Token, this.GetCancellationTokenOnDestroy());
+
+                DamageFlashAsync(linlkedCts.Token).Forget();
+            }
+            else
             {
                 Die();
             }
@@ -50,6 +91,43 @@ namespace TPSRoguelite.InGame.Enemy
             gameObject.SetActive(false);
 
             OnReturnToPoolAction?.Invoke(this);
+        }
+        private void ResetColor()
+        {
+            if (modelRenderers == null || defaultColors == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < modelRenderers.Length; i++)
+            {
+                if (modelRenderers[i] != null)
+                {
+                    modelRenderers[i].material.color = defaultColors[i];
+                }
+            }
+        }
+        private async UniTaskVoid DamageFlashAsync(CancellationToken token)
+        {
+            if (modelRenderers == null)
+            {
+                return;
+            }
+
+            foreach (var renderer in modelRenderers)
+            {
+                if (renderer != null)
+                {
+                    renderer.material.color = Color.red;
+                }
+            }
+
+            bool isCanceled = await UniTask.Delay(TimeSpan.FromSeconds(FLASH_DURATION), cancellationToken: token).SuppressCancellationThrow();
+
+            if (isCanceled)
+            {
+                ResetColor();
+            }
         }
     }
 }
