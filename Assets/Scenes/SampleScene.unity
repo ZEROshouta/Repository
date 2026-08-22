@@ -254,6 +254,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -3848353912376685455, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
+      propertyPath: expBar
+      value: 
+      objectReference: {fileID: 196734412}
+    - target: {fileID: -3848353912376685455, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
       propertyPath: ammoText
       value: 
       objectReference: {fileID: 360223372}
@@ -273,6 +277,10 @@ PrefabInstance:
       propertyPath: weaponName
       value: 
       objectReference: {fileID: 1603945110}
+    - target: {fileID: -3848353912376685455, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
+      propertyPath: levelUpText
+      value: 
+      objectReference: {fileID: 2129928168}
     - target: {fileID: -3848353912376685455, guid: 376bb3c285b117e4592c16890f5bc058, type: 3}
       propertyPath: currentWeapon
       value: 
@@ -2115,7 +2123,7 @@ GameObject:
   - component: {fileID: 2129928169}
   - component: {fileID: 2129928168}
   m_Layer: 5
-  m_Name: LevelApText
+  m_Name: LevelUpText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
