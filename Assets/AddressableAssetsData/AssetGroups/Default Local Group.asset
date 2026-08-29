@@ -18,12 +18,20 @@ MonoBehaviour:
   - m_GUID: 05ac1beeb6344144d82e54020c95c6e5
     m_Address: EnemyData
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - EnemyData
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 193eae888a185b14a8787167f28865ab
     m_Address: WeaponData
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - WeaponData
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 23d287dcfa23776409993d740aeeaeec
+    m_Address: SkillData
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - SkillData
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 10bd3ae1ffb96e340b560088428f4ab8, type: 2}
