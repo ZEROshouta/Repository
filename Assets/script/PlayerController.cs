@@ -14,7 +14,7 @@ using TPSRoguelite.InGame.Manager;
 
 namespace TPSRoguelite.InGame.Player
 {
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IDamageable
     {
         private const float MOVE_SPEED = 5.0f;
 
@@ -50,6 +50,8 @@ namespace TPSRoguelite.InGame.Player
 
         [SerializeField] private ParticleSystem levelUpEffect;
 
+        [SerializeField] private Slider hpBar;
+
         private WeaponDataRecord currentWeapon;
 
         private PlayerInputActions inputActions;
@@ -79,6 +81,8 @@ namespace TPSRoguelite.InGame.Player
         public int CurrentAmmo { get; private set; }
         public int CurrentExp { get; private set; }
         public int CurrentLevel { get; private set; }
+        public int MaxHP { get; private set; } = 100;
+        public int CurrentHP { get; private set; }
         private int RequiredExp => CurrentLevel * 5;
         private int FinalAttackPower => currentWeapon != null ? Mathf.RoundToInt(currentWeapon.AttackPower * (1f + attackPowerBuf)) : 0;
         private int FinalMaxAmmo => currentWeapon != null ? currentWeapon.MaxAmmo + maxAmmoBuf : 0;
@@ -133,6 +137,12 @@ namespace TPSRoguelite.InGame.Player
             {
                 levelUpText.enabled = false;
             }
+
+            CurrentHP = MaxHP;
+
+            UpdateHpBar();
+
+            UpdateExpUI();
 
             gameObject.SetActive(true);
         }
@@ -534,6 +544,38 @@ namespace TPSRoguelite.InGame.Player
                     maxAmmoBuf += (int)skill.Value;
 
                     break;
+            }
+        }
+        private void UpdateHpBar()
+        {
+            if (hpBar != null)
+            {
+                hpBar.value = (float)CurrentHP / MaxHP;
+            }
+        }
+        private void Die()
+        {
+            gameObject.SetActive(false);
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.GameOver();
+            }
+        }
+        public void TakeDamage(int damageAmount)
+        {
+            if (damageAmount <= 0 || CurrentHP <= 0)
+            {
+                return;
+            }
+
+            CurrentHP -= damageAmount;
+
+            UpdateHpBar();
+
+            if (CurrentHP <= 0)
+            {
+                Die();
             }
         }
     }
